@@ -1,0 +1,64 @@
+# Import necessary libraries
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, count, avg, max, min
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Initialize Spark Session
+spark = SparkSession.builder \
+    .appName("Big Data Analysis with PySpark") \
+    .getOrCreate()
+
+# Load dataset (e.g., a large CSV file)
+# For demonstration, replace 'path_to_large_dataset.csv' with your actual dataset location
+df = spark.read.csv("path_to_large_dataset.csv", header=True, inferSchema=True)
+
+# Show the schema and top rows of the dataset
+df.printSchema()
+df.show(5)
+
+# Data Cleaning - Remove rows with missing or null values in important columns
+df_cleaned = df.dropna(subset=['important_column1', 'important_column2'])
+
+# Perform basic statistics: Count of records, average of some column
+record_count = df_cleaned.count()
+print(f"Total records after cleaning: {record_count}")
+
+# Aggregation: Get the average, minimum, and maximum of a numerical column
+agg_result = df_cleaned.select(
+    avg("numerical_column").alias("average"),
+    min("numerical_column").alias("minimum"),
+    max("numerical_column").alias("maximum")
+)
+
+agg_result.show()
+
+# Group by and Aggregate: Example, group by 'category_column' and get count
+grouped_data = df_cleaned.groupBy("category_column").agg(
+    count("numerical_column").alias("count")
+)
+
+# Show the result of grouping and aggregation
+grouped_data.show()
+
+# Filter Data: Example, filter data based on some condition
+filtered_data = df_cleaned.filter(col("numerical_column") > 100)
+filtered_data.show(5)
+
+# Visualization: Example of showing the distribution of a numerical column
+# Collect data to plot locally (Note: PySpark is distributed, so we collect only a small sample)
+sample_data = df_cleaned.select("numerical_column").sample(False, 0.1).toPandas()
+
+# Plotting using seaborn or matplotlib
+plt.figure(figsize=(10, 6))
+sns.histplot(sample_data['numerical_column'], kde=True)
+plt.title('Distribution of Numerical Column')
+plt.xlabel('Numerical Column')
+plt.ylabel('Frequency')
+plt.show()
+
+# Save results to a file (example: save the cleaned data as a CSV file)
+df_cleaned.write.csv("path_to_output_cleaned_data.csv", header=True)
+
+# Stop the Spark session when done
+spark.stop()
